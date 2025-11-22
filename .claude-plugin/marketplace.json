@@ -1,36 +1,35 @@
 {
   "name": "jungjaehoon-plugins",
+  "version": "1.0.0",
   "owner": {
     "name": "jungjaehoon-lifegamez",
-    "homepage": "https://github.com/jungjaehoon-lifegamez",
-    "contact": "jungjaehoon@lifegamez.net"
+    "email": "jungjaehoon@lifegamez.net",
+    "url": "https://github.com/jungjaehoon-lifegamez"
+  },
+  "metadata": {
+    "description": "Claude Code plugins by jungjaehoon-lifegamez",
+    "version": "1.0.0"
   },
   "plugins": [
     {
-      "id": "mama",
-      "name": "MAMA",
-      "description": "Memory-Augmented MCP Assistant - Track decisions, learn from mistakes, never repeat errors.",
+      "name": "mama",
       "version": "1.0.0",
-      "author": "SpineLift Team",
-      "license": "MIT",
       "source": "./plugins/mama",
-      "keywords": [
+      "description": "Memory-Augmented MCP Assistant - Track decisions, learn from mistakes, never repeat errors.",
+      "author": {
+        "name": "SpineLift Team",
+        "email": "dev@spinelift.com"
+      },
+      "license": "MIT",
+      "repository": "https://github.com/jungjaehoon-lifegamez/MAMA",
+      "category": "productivity",
+      "tags": [
         "memory",
         "decision-tracking",
         "mcp",
         "semantic-search",
         "claude-code"
-      ],
-      "installName": "mama",
-      "repository": {
-        "type": "git",
-        "url": "https://github.com/jungjaehoon-lifegamez/MAMA.git",
-        "directory": "packages/claude-code-plugin"
-      },
-      "homepage": "https://github.com/jungjaehoon-lifegamez/MAMA#readme",
-      "bugs": {
-        "url": "https://github.com/jungjaehoon-lifegamez/MAMA/issues"
-      }
+      ]
     }
   ]
 }
