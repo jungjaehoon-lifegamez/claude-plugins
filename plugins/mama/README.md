@@ -4,6 +4,8 @@ Track decisions, learn from mistakes, never repeat errors.
 
 MAMA is an always-on companion for Claude Code that remembers your decision evolution. It helps you maintain context across sessions, learn from past mistakes, and build institutional knowledge.
 
+**💡 Killer Feature:** Session continuity. Save your session with `/mama-checkpoint`, resume tomorrow with `/mama-resume` - pick up exactly where you left off.
+
 ## Prerequisites
 
 - Node.js >= 18.0.0 (20+ recommended)
@@ -24,6 +26,19 @@ First use of `/mama-save` downloads the MCP server automatically (~1-2 minutes).
 
 ## Usage
 
+**Session Continuity (The Killer Feature):**
+
+```bash
+# End of day
+/mama-checkpoint
+
+# Next morning - resume with full context
+/mama-resume
+# → Shows: what you were working on, relevant files, next steps
+```
+
+**Decision Tracking:**
+
 ```bash
 # Save your first decision
 /mama-save topic="auth_strategy" decision="Use JWT with refresh tokens" reasoning="Better security and user experience"
@@ -39,6 +54,9 @@ First use of `/mama-save` downloads the MCP server automatically (~1-2 minutes).
 ```
 
 ## Features
+
+**Session Continuity (💡 Killer Feature)**
+Save your session state before closing. Resume next time with full context: what you were working on, relevant files, exact next steps. Never lose your flow between sessions.
 
 **Decision Evolution Tracking**
 Track decisions with full context and reasoning. Link related decisions (supersedes, contradicts, refines). Update outcomes as you learn.
