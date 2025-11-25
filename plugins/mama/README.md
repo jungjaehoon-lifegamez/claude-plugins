@@ -1,217 +1,317 @@
-# MAMA - Memory-Augmented MCP Assistant
+# MAMA Plugin - Memory-Augmented MCP Assistant
 
-Track decisions, learn from mistakes, never repeat errors.
+**Version:** 1.0.0
+**License:** MIT
+**Author:** SpineLift Team
 
-MAMA is an always-on companion for Claude Code that remembers your decision evolution. It helps you maintain context across sessions, learn from past mistakes, and build institutional knowledge.
+> "Remember decision evolution, not just conclusions"
 
-**💡 Killer Feature:** Session continuity. Save your session with `/mama-checkpoint`, resume tomorrow with `/mama-resume` - pick up exactly where you left off.
-
-## Prerequisites
-
-- Node.js >= 18.0.0 (20+ recommended)
-- 500MB free disk space for embedding model cache
-- SQLite support (included on most systems)
-
-## Installation
-
-```bash
-# Add marketplace
-/plugin marketplace add jungjaehoon-lifegamez/claude-plugins
-
-# Install MAMA
-/plugin install mama
-```
-
-First use of `/mama-save` downloads the MCP server automatically (~1-2 minutes).
-
-## Usage
-
-**Session Continuity (The Killer Feature):**
-
-```bash
-# End of day
-/mama-checkpoint
-
-# Next morning - resume with full context
-/mama-resume
-# → Shows: what you were working on, relevant files, next steps
-```
-
-**Decision Tracking:**
-
-```bash
-# Save your first decision
-/mama-save topic="auth_strategy" decision="Use JWT with refresh tokens" reasoning="Better security and user experience"
-
-# Search for related decisions
-/mama-suggest "How should I handle authentication?"
-
-# View decision history
-/mama-recall auth_strategy
-
-# List all decisions
-/mama-list
-```
-
-## Features
-
-**Session Continuity (💡 Killer Feature)**
-Save your session state before closing. Resume next time with full context: what you were working on, relevant files, exact next steps. Never lose your flow between sessions.
-
-**Decision Evolution Tracking**
-Track decisions with full context and reasoning. Link related decisions (supersedes, contradicts, refines). Update outcomes as you learn.
-
-**Semantic Search**
-Find relevant decisions using natural language. Cross-lingual support (English + Korean). Confidence scoring for relevance.
-
-**Automatic Context Injection**
-Relevant decisions surface automatically as you work. File-specific context when editing code. Zero overhead - all processing happens locally.
-
-**Local-First Architecture**
-No network calls - everything runs on your device. SQLite database with vector extensions. Privacy-focused design.
-
-**Multilingual Support**
-Natural language in English and Korean. Cross-lingual semantic search. Supports decision tracking in any language.
-
-## Commands
-
-| Command | Purpose | Example |
-|---------|---------|---------|
-| `/mama-save` | Save decision with reasoning | `/mama-save topic="api_design"` |
-| `/mama-recall <topic>` | View decision history | `/mama-recall api_design` |
-| `/mama-suggest <query>` | Semantic search | `/mama-suggest "database choice"` |
-| `/mama-list` | Browse all decisions | `/mama-list --limit=20` |
-| `/mama-checkpoint` | Save session state | `/mama-checkpoint` |
-| `/mama-resume` | Resume from checkpoint | `/mama-resume` |
-| `/mama-configure` | View/modify settings | `/mama-configure --show` |
-
-## Use Cases
-
-### Code Review Learning
-
-```bash
-# After finding a bug
-/mama-save topic="validation_bug_2024" \
-  decision="Always validate user input at API boundary" \
-  reasoning="XSS vulnerability found in profile endpoint"
-
-# Later, when writing similar code
-# MAMA automatically surfaces: "Remember validation_bug_2024..."
-```
-
-### Architecture Decisions
-
-```bash
-# Document your choice
-/mama-save topic="state_management" \
-  decision="Use Zustand instead of Redux" \
-  reasoning="Simpler API, less boilerplate, better TypeScript support"
-
-# Track outcome
-/mama-update state_management --outcome=success
-```
-
-### Session Continuity
-
-```bash
-# End of day
-/mama-checkpoint
-
-# Next morning
-/mama-resume
-# See: "Yesterday you were working on authentication refactor..."
-```
-
-## Configuration
-
-### Database Location
-
-Default: `~/.claude/mama-memory.db`
-
-Change via environment variable:
-```bash
-export MAMA_DB_PATH=/custom/path/mama-memory.db
-```
-
-### Embedding Model
-
-MAMA uses `Xenova/all-MiniLM-L6-v2` for local embeddings (384 dimensions). No configuration needed - works out of the box.
-
-## Architecture
-
-MAMA consists of two packages:
-
-1. **MCP Server** (`@jungjaehoon/mama-server`) - Core memory engine
-   - SQLite + vector similarity search
-   - Local embeddings via Transformers.js
-   - MCP protocol for tool integration
-
-2. **Claude Code Plugin** (this package) - User interface
-   - Slash commands for decision management
-   - Hooks for automatic context injection
-   - Skills for background processing
-
-## Documentation
-
-- [Full Documentation](https://github.com/jungjaehoon-lifegamez/MAMA#documentation)
-- [Developer Guide](https://github.com/jungjaehoon-lifegamez/MAMA/tree/main/docs/development)
-- [Architecture Deep-Dive](https://github.com/jungjaehoon-lifegamez/MAMA/blob/main/docs/development/developer-playbook.md)
-
-## Troubleshooting
-
-### MCP Server Not Starting
-
-```bash
-# Test MCP server manually
-npx @jungjaehoon/mama-server
-
-# Check Node.js version (requires >= 18.0.0)
-node --version
-```
-
-### Database Errors
-
-```bash
-# Check database location
-/mama-configure --show
-
-# Reset database (WARNING: deletes all data)
-rm ~/.claude/mama-memory.db
-```
-
-### Plugin Not Loading
-
-```bash
-# Validate plugin structure
-/plugin validate mama
-
-# Reinstall
-/plugin uninstall mama
-/plugin install mama
-```
-
-## Contributing
-
-Found a bug? Have a feature request?
-
-- [Report Issues](https://github.com/jungjaehoon-lifegamez/MAMA/issues)
-- [Main Repository](https://github.com/jungjaehoon-lifegamez/MAMA)
-
-## License
-
-MIT License - see [LICENSE](https://github.com/jungjaehoon-lifegamez/MAMA/blob/main/LICENSE)
-
-## Acknowledgments
-
-MAMA was inspired by the excellent work of [mem0](https://github.com/mem0ai/mem0) (Apache 2.0). While MAMA is a distinct implementation focused on local-first SQLite/MCP architecture for Claude, we appreciate their pioneering work in LLM memory management.
-
-Built with:
-- [Model Context Protocol](https://modelcontextprotocol.io/) - Anthropic's MCP SDK
-- [Transformers.js](https://huggingface.co/docs/transformers.js) - Local embeddings
-- [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) - Fast SQLite
-- [sqlite-vec](https://github.com/asg017/sqlite-vec) - Vector similarity search
+MAMA is an always-on companion for Claude Code that remembers how you think. It preserves the evolution of your decisions—from failed attempts to successful solutions—preventing you from repeating the same mistakes.
 
 ---
 
-Author: SpineLift Team
-Last Updated: 2025-11-22
+## ✨ Key Features
+
+✅ **Decision Evolution Tracking** - See the journey from confusion to clarity
+✅ **Semantic Search** - Natural language queries across all decisions
+✅ **Always-on Context** - Automatic background hints when relevant
+✅ **Multi-language Support** - Korean + English cross-lingual search
+✅ **Tier Transparency** - Always shows what's working, what's degraded
+✅ **Local-first** - All data stored on your device
+
+---
+
+## 🚀 Quick Install
+
+**Prerequisites:** Node.js >= 18.0.0
+
+### Claude Code
+
+```bash
+/plugin marketplace add jungjaehoon/claude-plugins
+/plugin install mama@jungjaehoon
+```
+
+**First use:** MCP server downloads automatically (~1-2 min)
+
+### Claude Desktop
+
+Add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "mama": {
+      "command": "npx",
+      "args": ["-y", "@jungjaehoon/mama-server"]
+    }
+  }
+}
+```
+
+**Works with both!** Same MCP server, shared database.
+
+**Detailed guide:** [Installation Guide](../../docs/guides/installation.md)
+
+---
+
+## 📚 Getting Started
+
+### 1. Verify Installation
+
+```
+/mama-list
+# Expected: 🟢 Tier 1 (Full Features Active)
+```
+
+### 2. Save Your First Decision
+
+```
+/mama-save
+Topic: test_framework
+Decision: Use Vitest for testing
+Reasoning: Better ESM support than Jest
+Confidence: 0.9
+```
+
+### 3. Automatic Context Injection
+
+MAMA automatically shows relevant decisions when you ask questions:
+
+```
+You: "How should I handle testing?"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 MAMA: 1 related decision
+   • test_framework (90%, just now)
+   /mama-recall test_framework for full history
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**Full tutorial:** [Getting Started Guide](../../docs/tutorials/getting-started.md)
+
+---
+
+## 💻 Commands Reference
+
+| Command                    | Purpose                            |
+| -------------------------- | ---------------------------------- |
+| `/mama-save`               | Save a decision with reasoning     |
+| `/mama-recall <topic>`     | View decision evolution history    |
+| `/mama-suggest <question>` | Semantic search across decisions   |
+| `/mama-list [--limit N]`   | List recent decisions (default 10) |
+| `/mama-configure`          | Change embedding model or settings |
+
+**Full reference:** [Commands Reference](../../docs/reference/commands.md)
+
+---
+
+## 🎯 Tier System
+
+MAMA operates in **two tiers** with full transparency:
+
+| Tier          | Features                        | Accuracy |
+| ------------- | ------------------------------- | -------- |
+| **🟢 Tier 1** | Vector search + Graph + Recency | 80%      |
+| **🟡 Tier 2** | Exact match only                | 40%      |
+
+**If you see Tier 2:** [Tier 2 Remediation Guide](docs/guides/tier-2-remediation.md)
+
+**Learn more:** [Understanding Tiers Tutorial](docs/tutorials/understanding-tiers.md)
+
+---
+
+## 📖 Documentation
+
+### For New Users
+
+- **[Getting Started Tutorial](docs/tutorials/getting-started.md)** - 10-minute quickstart
+- **[First Decision Tutorial](docs/tutorials/first-decision.md)** - Best practices
+- **[Understanding Tiers](docs/tutorials/understanding-tiers.md)** - Tier system explained
+
+### Task-Oriented Guides
+
+- **[Installation Guide](docs/guides/installation.md)** - Complete installation
+- **[Troubleshooting Guide](docs/guides/troubleshooting.md)** - Common issues and fixes
+- **[Configuration Guide](docs/guides/configuration.md)** - All settings
+
+### Technical Reference
+
+- **[Commands Reference](docs/reference/commands.md)** - All `/mama-*` commands
+- **[MCP Tool API](docs/reference/api.md)** - Tool interfaces
+- **[Hooks Reference](docs/reference/hooks.md)** - Hook configuration
+
+### Understanding MAMA
+
+- **[Architecture](docs/explanation/architecture.md)** - System architecture
+- **[Decision Graph](docs/explanation/decision-graph.md)** - Decision evolution
+- **[Data Privacy](docs/explanation/data-privacy.md)** - Privacy-first design
+
+### For Contributors
+
+- **[Developer Playbook](docs/development/developer-playbook.md)** - Architecture & standards
+- **[Contributing Guide](docs/development/contributing.md)** - How to contribute
+- **[Testing Guide](docs/development/testing.md)** - Test suite
+
+**Full navigation:** [Documentation Index](docs/index.md)
+
+---
+
+## 🔧 Configuration
+
+### Disable Hooks (Privacy Mode)
+
+```bash
+export MAMA_DISABLE_HOOKS=true
+# Or in ~/.mama/config.json:
+{ "disable_hooks": true }
+```
+
+### Change Embedding Model
+
+```bash
+/mama-configure --model Xenova/all-MiniLM-L6-v2
+```
+
+**Full guide:** [Configuration Guide](docs/guides/configuration.md)
+
+---
+
+## 🐛 Troubleshooting
+
+**Common issues:**
+
+- **Commands not appearing:** Restart Claude Code, check [Plugin Not Loading](docs/guides/troubleshooting.md#1-plugin-not-loading)
+- **SQLite build fails:** Install build tools, see [SQLite Build Failures](docs/guides/troubleshooting.md#2-sqlite-build-failures)
+- **Tier 2 detected:** Follow [Tier 2 Remediation Guide](docs/guides/tier-2-remediation.md)
+- **Hooks not firing:** Check permissions, see [Hooks Not Firing](docs/guides/troubleshooting.md#4-hooks-not-firing)
+
+**Full guide:** [Troubleshooting Guide](docs/guides/troubleshooting.md)
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test suite
+npm test tests/skills/mama-context-skill.test.js
+
+# With coverage
+npm run test:coverage
+```
+
+**Test coverage:** 134 tests (100% pass rate)
+
+- Unit tests: 62 (core logic)
+- Integration tests: 39 (hooks, workflows)
+- Regression tests: 33 (bug prevention)
+
+**Guide:** [Testing Guide](docs/development/testing.md)
+
+---
+
+## 🛡️ Privacy & Security
+
+**FR Reference:** [FR45-49 (Privacy & Security)](docs/reference/fr-mapping.md)
+
+- ✅ 100% local processing (no network calls)
+- ✅ All data in `~/.claude/mama-memory.db`
+- ✅ No telemetry, no tracking
+- ✅ Hooks can be disabled anytime
+
+**Learn more:** [Data Privacy Explanation](docs/explanation/data-privacy.md)
+
+---
+
+## 🚀 Performance
+
+**With HTTP Embedding Server (Default):**
+
+- Hook latency: ~150ms (model stays loaded in memory)
+- Embedding requests: ~50ms via HTTP
+
+**Without HTTP Server (Fallback):**
+
+- First query: ~987ms (model load + inference)
+- Subsequent queries: ~89ms (cached)
+
+**Tier 2 (Exact Match):**
+
+- All queries: ~12ms (no embeddings)
+
+**Learn more:** [Performance Characteristics](docs/explanation/performance.md)
+
+---
+
+## 📦 Architecture
+
+MAMA uses a **2-package structure** with a shared HTTP embedding server:
+
+```
+┌─────────────────────────────────────────────────┐
+│              Local Machine                       │
+├─────────────────────────────────────────────────┤
+│  Claude Code  Claude Desktop  Cursor  Aider     │
+│       │            │            │       │        │
+│       └────────────┴────────────┴───────┘        │
+│                      │                           │
+│     ┌────────────────▼────────────────┐         │
+│     │  HTTP Embedding Server          │         │
+│     │  127.0.0.1:3847                 │         │
+│     └─────────────────────────────────┘         │
+│                      │                           │
+│     ┌────────────────▼────────────────┐         │
+│     │  MCP Server + SQLite            │         │
+│     │  mama-memory.db (shared)        │         │
+│     └─────────────────────────────────┘         │
+└─────────────────────────────────────────────────┘
+```
+
+### 1. MCP Server (@jungjaehoon/mama-server)
+
+Independent npm package shared across all MCP clients. Includes HTTP embedding server on port 3847.
+
+### 2. Claude Code Plugin (mama-plugin)
+
+Lightweight plugin referencing the MCP server. Hooks use HTTP embedding server for fast context injection.
+
+**Benefits:**
+
+- ✅ One MCP server → Multiple clients (Code, Desktop, etc.)
+- ✅ Shared HTTP embedding server → Fast hook execution (~150ms)
+- ✅ Shared decision database across all tools
+
+**Guide:** [Developer Playbook](docs/development/developer-playbook.md)
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see:
+
+- [Contributing Guide](docs/development/contributing.md)
+- [Developer Playbook](docs/development/developer-playbook.md)
+- [Code Standards](docs/development/code-standards.md)
+
+---
+
+## 📄 License
+
+MIT License - see LICENSE file for details
+
+---
+
+## 🔗 Links
+
+- **Documentation:** [docs/index.md](docs/index.md)
+- **GitHub:** [github.com/jungjaehoon-lifegamez/MAMA](https://github.com/jungjaehoon-lifegamez/MAMA)
+- **Issues:** [github.com/jungjaehoon-lifegamez/MAMA/issues](https://github.com/jungjaehoon-lifegamez/MAMA/issues)
+- **PRD:** [docs/project/prd.md](docs/project/prd.md)
+
+---
+
+**Status:** Documentation restructuring in progress (Story M4.5)
+**Last Updated:** 2025-11-21
