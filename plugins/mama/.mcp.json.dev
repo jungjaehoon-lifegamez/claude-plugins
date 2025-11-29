@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "mama": {
+      "command": "node",
+      "args": [
+        "/home/hoons/MAMA/packages/mcp-server/src/server.js"
+      ],
+      "env": {
+        "MAMA_EMBEDDING_MODEL": "Xenova/multilingual-e5-small",
+        "NODE_ENV": "development"
+      },
+      "description": "MAMA - Memory-Augmented MCP Assistant (local development)"
+    }
+  }
+}
