@@ -13,9 +13,9 @@
   "plugins": [
     {
       "name": "mama",
-      "version": "1.2.0",
+      "version": "1.5.9",
       "source": "./plugins/mama",
-      "description": "Memory-Augmented MCP Assistant - Track decisions, learn from mistakes, never repeat errors.",
+      "description": "Memory-Augmented MCP Assistant - Chat from anywhere, track decisions, never repeat mistakes.",
       "author": {
         "name": "SpineLift Team",
         "email": "dev@spinelift.com"
