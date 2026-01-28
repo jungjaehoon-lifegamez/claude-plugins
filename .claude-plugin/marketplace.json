@@ -13,7 +13,7 @@
   "plugins": [
     {
       "name": "mama",
-      "version": "1.5.9",
+      "version": "1.5.10",
       "source": "./plugins/mama",
       "description": "Memory-Augmented MCP Assistant - Chat from anywhere, track decisions, never repeat mistakes.",
       "author": {
