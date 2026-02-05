@@ -32,9 +32,10 @@ const CORE_PATH = path.join(PLUGIN_ROOT, 'src', 'core');
 require('module').globalPaths.push(CORE_PATH);
 
 const { info, warn, error: logError } = require(path.join(CORE_PATH, 'debug-logger'));
-// Memory store for direct contract saving
-const { initDB, saveDecision } = require(path.join(CORE_PATH, 'memory-store'));
-const { generateEmbedding } = require(path.join(CORE_PATH, 'embeddings'));
+// Memory store for DB initialization and direct contract saving
+const { initDB, getDB, insertDecisionWithEmbedding, queryVectorSearch } = require(
+  path.join(CORE_PATH, 'memory-store')
+);
 const { loadConfig } = require(path.join(CORE_PATH, 'config-loader'));
 
 // MAMA v2: Contract extraction
@@ -49,8 +50,7 @@ const { shouldShowLong, markSeen } = require(path.join(CORE_PATH, 'session-utils
 const SIMILARITY_THRESHOLD = 0.75; // AC: Above threshold for auto-save suggestion
 const MAX_RUNTIME_MS = 3000; // Increased for embedding model loading
 const AUDIT_LOG_FILE = path.join(PLUGIN_ROOT, '.posttooluse-audit.log');
-const CONTRACT_RATE_LIMIT_MS = Number(process.env.MAMA_CONTRACT_RATE_LIMIT_MS || 15000);
-const CONTRACT_RATE_LIMIT_FILE = path.join(PLUGIN_ROOT, '.posttooluse-contract-rate.json');
+// Rate limit removed - all code edits should capture contracts (Feb 2025)
 
 // Tools that trigger auto-save consideration
 const EDIT_TOOLS = ['write_file', 'apply_patch', 'Edit', 'Write', 'test', 'build'];
@@ -94,33 +94,80 @@ function isLowPriorityPath(filePath) {
   return false;
 }
 
-function checkContractRateLimit() {
-  if (!Number.isFinite(CONTRACT_RATE_LIMIT_MS) || CONTRACT_RATE_LIMIT_MS <= 0) {
-    return { allowed: true, waitMs: 0 };
-  }
-
+/**
+ * Check if a contract with the same topic and identical decision already exists.
+ * This prevents noise from repeatedly saving the same unchanged contract.
+ *
+ * @param {string} topic - The contract topic (e.g., 'contract_fetchUserData')
+ * @param {string} decision - The contract decision text
+ * @returns {boolean} - true if duplicate exists (should skip), false otherwise
+ */
+function isDuplicateContract(topic, decision) {
   try {
-    if (fs.existsSync(CONTRACT_RATE_LIMIT_FILE)) {
-      const raw = fs.readFileSync(CONTRACT_RATE_LIMIT_FILE, 'utf8');
-      const parsed = JSON.parse(raw || '{}');
-      const last = Number(parsed.last_ts || 0);
-      const now = Date.now();
-      const elapsed = now - last;
-      if (last && elapsed < CONTRACT_RATE_LIMIT_MS) {
-        return { allowed: false, waitMs: CONTRACT_RATE_LIMIT_MS - elapsed };
+    const db = getDB();
+    if (!db) {
+      return false; // Can't check, allow save
+    }
+    // Query for existing decision with same topic
+    const existing = db
+      .prepare('SELECT decision FROM decisions WHERE topic = ? ORDER BY created_at DESC LIMIT 1')
+      .get(topic);
+
+    if (!existing) {
+      return false; // No existing contract with this topic
+    }
+
+    // Exact match = duplicate
+    if (existing.decision === decision) {
+      info(`[Hook] Skipping duplicate contract: ${topic} (exact match)`);
+      return true;
+    }
+
+    // Not a duplicate - will create supersedes edge automatically
+    return false;
+  } catch (err) {
+    warn(`[Hook] Duplicate check failed: ${err.message}`);
+    return false; // Allow save on error
+  }
+}
+
+/**
+ * Find a related contract to link with builds_on edge.
+ * Searches for semantically similar contracts with different topics.
+ *
+ * @param {string} decision - The contract decision text to search for
+ * @param {string} currentTopic - Current topic to exclude from results
+ * @returns {Promise<string|null>} - Related decision ID or null
+ */
+async function findRelatedContract(decision, currentTopic) {
+  try {
+    // Search for similar contracts (fast - ~50ms)
+    const results = await queryVectorSearch({
+      query: decision,
+      limit: 3,
+      threshold: 0.8, // High threshold for strong relevance
+    });
+
+    if (!results || results.length === 0) {
+      return null;
+    }
+
+    // Find first result with different topic (not supersedes, but builds_on)
+    for (const result of results) {
+      if (result.topic && result.topic !== currentTopic && result.topic.startsWith('contract_')) {
+        info(
+          `[Hook] Found related contract: ${result.topic} (${Math.round(result.similarity * 100)}% match)`
+        );
+        return result.id || result.topic; // Return ID or topic as fallback
       }
     }
-  } catch (error) {
-    warn(`[Hook] Contract rate-limit read failed: ${error.message}`);
-  }
 
-  try {
-    fs.writeFileSync(CONTRACT_RATE_LIMIT_FILE, JSON.stringify({ last_ts: Date.now() }), 'utf8');
-  } catch (error) {
-    warn(`[Hook] Contract rate-limit write failed: ${error.message}`);
+    return null;
+  } catch (err) {
+    // Silently fail - builds_on is optional enhancement
+    info(`[Hook] Related contract search skipped: ${err.message}`);
+    return null;
   }
-
-  return { allowed: true, waitMs: 0 };
 }
 
 function formatContractsCompact(contracts, filePath) {
@@ -784,22 +831,13 @@ async function main() {
             diff_size: diffContent.length,
           });
         } else {
-          const rateLimit = checkContractRateLimit();
-          if (!rateLimit.allowed) {
-            info(`[Hook] Contract analysis rate-limited (${rateLimit.waitMs}ms remaining)`);
-            logContractAnalysis('skipped_rate_limit', {
-              file: filePath || 'unknown',
-              diff_size: diffContent.length,
-              wait_ms: rateLimit.waitMs,
-            });
-          } else {
-            hasCodeChange = true;
-            logContractAnalysis('suggested', {
-              file: filePath || 'unknown',
-              diff_size: diffContent.length,
-            });
-            info('[Hook] Code change detected; delegating contract analysis to Haiku');
-          }
+          // Rate limit removed - all code edits should capture contracts
+          hasCodeChange = true;
+          logContractAnalysis('suggested', {
+            file: filePath || 'unknown',
+            diff_size: diffContent.length,
+          });
+          info('[Hook] Code change detected; extracting contracts');
         }
       } else {
         info('[Hook] Test file detected, skipping contract analysis');
@@ -849,25 +887,56 @@ async function main() {
             await initDB();
             for (const contract of allContracts.slice(0, 3)) {
               // Limit to 3 contracts per edit
-              const contractTopic = `contract_${contract.type}_${contract.name}`.replace(
-                /[^a-zA-Z0-9_]/g,
-                '_'
-              );
-              const contractDecision = contract.signature || contract.name;
-              const contractReasoning = `Auto-extracted from ${filePath}. Source: ${contract.source || 'code analysis'}`;
-
-              const embedding = await generateEmbedding(`${contractTopic} ${contractDecision}`);
-              if (embedding) {
-                await saveDecision({
-                  topic: contractTopic,
-                  decision: contractDecision,
-                  reasoning: contractReasoning,
-                  confidence: 0.8,
-                  embedding,
-                });
-                savedCount++;
-                info(`[Hook] Auto-saved contract: ${contractTopic}`);
+              // Build name based on contract type
+              let contractName;
+              let contractDecision;
+              if (contract.type === 'api_endpoint') {
+                // API endpoint: use method + path
+                const method = (contract.method || 'unknown').toLowerCase();
+                const pathPart = (contract.path || '/unknown')
+                  .replace(/[/:]/g, '_')
+                  .replace(/^_/, '');
+                contractName = `${method}_${pathPart}`;
+                contractDecision = `${contract.method || 'UNKNOWN'} ${contract.path || '/unknown'} expects ${contract.request || '{...}'}, returns ${contract.response || '{...}'}`;
+              } else if (contract.type === 'function_signature') {
+                // Function signature: include full params
+                contractName = contract.name || 'unknown';
+                const params = Array.isArray(contract.params) ? contract.params.join(', ') : '';
+                const returnType = contract.returnType || 'unknown';
+                contractDecision = `${contract.name}(${params}) → ${returnType}`;
+              } else {
+                // Type def, SQL schema, etc.
+                contractName = contract.name || 'unknown';
+                contractDecision =
+                  contract.signature || contract.definition || contract.name || 'unknown';
               }
+              const contractTopic = `contract_${contractName}`.replace(/[^a-zA-Z0-9_]/g, '_');
+
+              // Skip duplicate contracts (same topic + identical decision)
+              if (isDuplicateContract(contractTopic, contractDecision)) {
+                info(`[Hook] Skipped duplicate: ${contractTopic}`);
+                continue;
+              }
+
+              // Build reasoning with optional builds_on edge
+              let contractReasoning = `Auto-extracted from ${filePath}:${contract.line || 'unknown'}. Source: ${contract.source || 'code analysis'}.`;
+
+              // Find related contracts to create builds_on edges (enhances graph connectivity)
+              const relatedId = await findRelatedContract(contractDecision, contractTopic);
+              if (relatedId) {
+                contractReasoning += ` builds_on: ${relatedId}`;
+              }
+
+              // insertDecisionWithEmbedding generates embedding internally
+              // Same topic automatically creates supersedes edge in MAMA
+              await insertDecisionWithEmbedding({
+                topic: contractTopic,
+                decision: contractDecision,
+                reasoning: contractReasoning,
+                confidence: 0.8,
+              });
+              savedCount++;
+              info(`[Hook] Auto-saved contract: ${contractTopic}`);
             }
           } catch (saveErr) {
             warn(`[Hook] Auto-save failed: ${saveErr.message}`);
