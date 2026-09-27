@@ -1,173 +1,40 @@
 ---
-description: View or modify MAMA configuration (database, embedding model, requirements)
-allowed-tools: Read, Write, Edit
-argument-hint: '[--show] [--model=<name>] [--db-path=<path>] [--tier-check]'
+description: Show MAMA's effective configuration (database, embedding model, hook switches)
+allowed-tools: Read, Bash
+argument-hint: '[--show]'
 ---
 
-# Configure MAMA Settings
+# MAMA Configuration
 
-You are helping the user view or modify MAMA configuration.
+You are helping the user see how MAMA is configured. Nothing here is written: every setting below comes
+from an environment variable or is fixed in the code.
 
 **User Arguments:** `$ARGUMENTS`
 
-## Instructions
+## What to report
 
-1. Parse configuration action:
-   - `--show` (default): Display current configuration
-   - `--model=X`: Change embedding model (e.g., 'Xenova/multilingual-e5-large')
-   - `--db-path=X`: Change database location (e.g., '~/.claude/mama-memory.db')
-   - `--tier-check`: Re-run the requirement checks (SQLite, embedding stack)
+1. **Database.** Use the first nonempty environment value in this order: `MAMA_DB_PATH`, then
+   `MAMA_DATABASE_PATH`; when neither is set, use `~/.claude/mama-memory.db`
+   (the plugin's development-memory database, shared by the hooks and the MCP server). Report whether
+   the file exists and its size. This database is separate from the MAMA OS daemon's state in `~/.mama/`.
+2. **Embedding model.** Fixed in the core: `Xenova/multilingual-e5-large`, 1024 dimensions, cached in
+   `~/.cache/huggingface/transformers`. It cannot be changed by configuration.
+3. **Hooks.** `MAMA_DISABLE_HOOKS=true` turns every hook off. Under `MAMA_DAEMON=1`, only the features
+   listed in `MAMA_HOOK_FEATURES` (comma-separated: memory, keywords, rules, agents, contracts) run.
+   Otherwise all features run. Report the values the current environment has.
+4. **Debugging.** `MAMA_DEBUG=true` enables verbose logs.
 
-2. For `--show` (default):
-   - Read configuration from `~/.mama/config.json`
-   - Read plugin config from `~/.claude/plugins/repos/mama/.claude-plugin/plugin.json`
-   - Display whether both requirements are present
-   - Show embedding model, database path, performance stats
-   - Include fix instructions when a requirement is missing
+## How to change something
 
-3. For `--model=X`:
-   - Update `~/.mama/config.json` with new model name
-   - Clear embedding cache (will reload on next use)
-   - Show confirmation and expected performance
+- Another database: set `MAMA_DB_PATH` before Claude Code starts (for example in the shell profile).
+  `MAMA_DATABASE_PATH` also works when the higher-priority variable is unset or empty.
+- Turn hooks off: set `MAMA_DISABLE_HOOKS=true`.
 
-4. For `--db-path=X`:
-   - Update `~/.mama/config.json` with new database path
-   - Warn if path doesn't exist (will create on next use)
-   - Note: Does NOT migrate existing data
-
-5. For `--tier-check`:
-   - Re-run the requirement checks (node:sqlite is built into supported Node 22.13+ runtimes; verify Transformers.js availability)
-   - Create `~/.mama/config.json` from the runtime defaults if it does not exist; if it does, leave its settings as they are
-   - Show what is missing and how to fix it
-
-## Example Usage
-
-```bash
-# View current configuration
-/mama:configure
-/mama:configure --show
-
-# Change embedding model
-/mama:configure --model=Xenova/multilingual-e5-base
-
-# Change database path
-/mama:configure --db-path=~/custom/mama.db
-
-# Check tier status
-/mama:configure --tier-check
-
-```
-
-## Response Format - Show Configuration
-
-````markdown
-# ⚙️ MAMA Configuration
-
-## System Status
-
-**Database:** {db_path} ({db_size})
-**Embedding Model:** {model_name} ({embedding_dim}-dim)
-**Decision Count:** {total_decisions}
-**Last Updated:** {config_updated_at}
-
----
-
-## Feature Status
-
-- ✅ Vector search (semantic similarity)
-- ✅ Graph search (decision evolution)
-- ✅ Recency weighting
-- ✅ Multi-language support (Korean-English)
-- ✅ Auto-context injection
-
-**Performance:**
-
-- Embedding latency: ~3ms
-- Search latency: ~50ms
-- Hook latency: ~100ms
-
----
-
-## Available Models
-
-**Current:** {current_model}
-
-**Alternatives:**
-
-- `Xenova/multilingual-e5-large` (1024-dim, ~560MB q8, 100+ languages, default)
-- `Xenova/multilingual-e5-base` (768-dim, 420MB, better accuracy, slower)
-- `Xenova/all-MiniLM-L6-v2` (384-dim, ~90MB, English-focused, faster cold start)
-
-**Change model:** `/mama:configure --model=<name>`
-
----
-
-## Configuration File
-
-**Location:** `~/.mama/config.json`
-
-```json
-{
-  "embeddingModel": "{model_name}",
-  "embeddingDim": {dim},
-  "databasePath": "{db_path}"
-}
-```
-````
-
-````
-
-## Response Format - Requirement Missing
+## Output format
 
 ```markdown
-# ⚙️ MAMA Configuration
-
-## System Status ❌
-
-**Missing:** {missing_component}
-**Breaks:** {what_it_breaks}
-**Fix:** {how_to_fix}
-
-MAMA has no degraded mode. The affected calls throw rather than returning
-weaker results, so nothing below works until this is fixed.
-
----
-
-## Fix Instructions
-
-```bash
-# Reinstall dependencies with Node 22.13+
-cd {plugin_path}
-npm install
+**Database:** {path} ({exists, size} or "not created yet")
+**Embedding model:** Xenova/multilingual-e5-large (1024-dim, fixed)
+**Hooks:** {all on | off (MAMA_DISABLE_HOOKS) | daemon mode: {features}}
+**Debug logs:** {on | off}
 ```
-
-After fixing, run: `/mama:configure --tier-check`
-
-```
-
-## Error Handling
-
-If configuration file doesn't exist:
-
-```
-
-⚠️ Configuration not initialized
-
-Run: `/mama:configure --tier-check`
-
-This will:
-
-1. Detect your system capabilities
-2. Create ~/.mama/config.json
-
-```
-
-## Important Notes
-
-- **Requirements**: `node:sqlite` (built into Node 22.13+) and the Transformers.js embedding stack. Either one missing makes the plugin unusable; there is no fallback mode
-- **Model change**: Clears cache, will reload on next search (~3s first time)
-- **DB path change**: Does NOT migrate data (manual migration required)
-- **Config location**: `~/.mama/config.json` (user-specific)
-- **Database location**: Default `~/.claude/mama-memory.db` (shared with Claude Desktop)
-```
-````

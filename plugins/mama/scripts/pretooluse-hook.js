@@ -27,6 +27,7 @@ const { vectorSearch } = require('@jungjaehoon/mama-core/knowledge');
 const { generateEmbedding } = require('@jungjaehoon/mama-core/embeddings');
 const { isFirstEdit, markFileEdited } = require('./session-state');
 const { shouldProcessFile } = require('./hook-file-filter');
+const { usePluginDatabase } = require('./db-path.js');
 
 // Threshold for relevance (documented: 60% in SKILL.md)
 const SIMILARITY_THRESHOLD = 0.6;
@@ -122,6 +123,7 @@ async function main() {
   }
 
   try {
+    usePluginDatabase();
     await initDB();
 
     // Build search query from file path

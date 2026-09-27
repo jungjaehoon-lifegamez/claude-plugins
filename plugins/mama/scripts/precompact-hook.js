@@ -12,6 +12,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const { usePluginDatabase } = require('./db-path.js');
 
 const PLUGIN_ROOT = path.resolve(__dirname, '..');
 const CORE_PATH = path.join(PLUGIN_ROOT, 'src', 'core');
@@ -86,6 +87,7 @@ async function getSavedTopicsFromDB() {
   try {
     const { getAdapter, initDB } = require('@jungjaehoon/mama-core/db-manager');
     const { vectorSearch } = require('@jungjaehoon/mama-core/knowledge');
+    usePluginDatabase();
     await initDB();
 
     // Get recent decisions (no embedding needed, just list recent)

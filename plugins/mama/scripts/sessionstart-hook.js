@@ -23,6 +23,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const { usePluginDatabase } = require('./db-path.js');
 
 // Get paths relative to script location
 const PLUGIN_ROOT = path.resolve(__dirname, '..');
@@ -127,6 +128,7 @@ async function warmDatabase() {
 
   try {
     const { initDB } = require('@jungjaehoon/mama-core/db-manager');
+    usePluginDatabase();
     await initDB();
 
     const latencyMs = Date.now() - startTime;
