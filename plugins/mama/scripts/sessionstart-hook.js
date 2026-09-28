@@ -458,20 +458,9 @@ Then restart Claude Code.
 🧠 MAMA Session initialized in ${totalLatencyMs}ms
 ${recentContextText}
 
-🤖 **PROACTIVE GREETING INSTRUCTION:**
-   If the user's first message is a simple greeting ("hi", "hello", "hey") or lacks specific task instructions,
-   YOU MUST proactively initiate a contextual conversation:
-
-   1. Greet the user warmly in their language
-   2. Summarize what was being worked on from the last checkpoint (if exists)
-   3. Highlight 1-2 recent key decisions that might be relevant
-   4. Ask if they want to continue previous work or start something new
-   5. Suggest specific next steps based on checkpoint's next_steps
-
-   Example response to "hi":
-   "Hello! 👋 Last time you were working on the MAMA Mobile v1.5 security review.
-   Recently you made decisions about public PR security policies and SessionStart guidance improvements.
-   Would you like to continue your previous work, or start something new?"
+🤖 **Greeting:** If the user opens with a greeting and no task, reply in their language. When a
+   checkpoint is shown above, say what it was working on and, when one is shown, its next step;
+   mention a relevant recent decision if one fits; then ask whether to continue or start something new.
 
 💡 **Proactive Partner Mode:**
    Save important decisions without being asked.
