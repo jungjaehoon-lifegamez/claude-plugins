@@ -23,15 +23,13 @@
 
 const path = require('path');
 const fs = require('fs');
-const { usePluginDatabase } = require('./db-path.js');
+// Nothing that loads mama-core is required here: this hook installs it first (plugin-deps.js).
+const { ensurePluginDependencies } = require('./plugin-deps.js');
 
 // Get paths relative to script location
 const PLUGIN_ROOT = path.resolve(__dirname, '..');
 const CORE_PATH = path.join(PLUGIN_ROOT, 'src', 'core');
 const { getEnabledFeatures } = require(path.join(CORE_PATH, 'hook-features'));
-
-// Add core to require path
-require('module').globalPaths.push(CORE_PATH);
 
 // Fallback logger (before dependencies are installed)
 let info = (...args) => console.error('[INFO]', ...args);
@@ -128,6 +126,7 @@ async function warmDatabase() {
 
   try {
     const { initDB } = require('@jungjaehoon/mama-core/db-manager');
+    const { usePluginDatabase } = require('./db-path.js');
     usePluginDatabase();
     await initDB();
 
@@ -280,44 +279,20 @@ function writeEnvStatus(status) {
 }
 
 /**
- * Check and install missing dependencies
+ * Install mama-core where this session's hooks load it from (plugin-deps.js).
  *
- * @returns {Promise<{installed: boolean, error?: string}>}
+ * @returns {{installed: boolean, error?: string, code?: string}}
  */
-async function ensureDependencies() {
-  const nodeModulesPath = path.join(PLUGIN_ROOT, 'node_modules');
-  const mamaCorePath = path.join(nodeModulesPath, '@jungjaehoon', 'mama-core');
-  let nodeSqliteAvailable = false;
-
+function ensureDependencies() {
   try {
-    const { DatabaseSync } = require('node:sqlite');
-    nodeSqliteAvailable = typeof DatabaseSync === 'function';
-  } catch {
-    nodeSqliteAvailable = false;
-  }
-
-  // Check if critical dependencies exist
-  if (fs.existsSync(mamaCorePath) && nodeSqliteAvailable) {
-    return { installed: false }; // Already installed
-  }
-
-  info('[SessionStart] Dependencies missing, running npm install...');
-
-  try {
-    const { execSync } = require('child_process');
-
-    // Run npm install in plugin root
-    execSync('npm install', {
-      cwd: PLUGIN_ROOT,
-      stdio: 'pipe', // Suppress output
-      timeout: 120000, // 2 minute timeout
-    });
-
-    info('[SessionStart] Dependencies installed successfully');
-    return { installed: true };
+    const status = ensurePluginDependencies();
+    if (status === 'installed') {
+      info('[SessionStart] Dependencies installed into CLAUDE_PLUGIN_DATA');
+    }
+    return { installed: status === 'installed' };
   } catch (error) {
-    logError(`[SessionStart] npm install failed: ${error.message}`);
-    return { installed: false, error: error.message };
+    logError(`[SessionStart] Dependency install failed: ${error.message}`);
+    return { installed: false, error: error.message, code: error.code };
   }
 }
 
@@ -355,31 +330,37 @@ async function main() {
   info('[SessionStart] MAMA session initialization starting...');
 
   // Ensure dependencies are installed before proceeding
-  const depResult = await ensureDependencies();
+  const depResult = ensureDependencies();
   if (depResult.error) {
-    // Dependencies failed to install - output error and exit
+    // Another session installing is not a failure, and running npm by hand beside it would
+    // install twice into one folder; the steps are shown only for a failed install.
+    const busy = depResult.code === 'MAMA_DEPS_BUSY';
+    const steps =
+      depResult.code === undefined && process.env.CLAUDE_PLUGIN_DATA
+        ? `
+The next session start tries again. To install by hand:
+\`\`\`bash
+cd "${process.env.CLAUDE_PLUGIN_DATA}"
+npm install --omit=dev
+\`\`\`
+`
+        : '';
     const response = {
       hookSpecificOutput: {
         hookEventName: 'SessionStart',
-        additionalContext: `⚠️ MAMA: Failed to install dependencies
+        additionalContext: busy
+          ? `⏳ MAMA: ${depResult.error}`
+          : `⚠️ MAMA: Failed to install dependencies
 
 ---
 ❌ **MAMA Dependency Installation Failed**
 
 Error: ${depResult.error}
-
-**Manual fix required:**
-\`\`\`bash
-cd ${PLUGIN_ROOT}
-npm install
-\`\`\`
-
-Then restart Claude Code.
-`,
+${steps}`,
       },
     };
     console.log(JSON.stringify(response));
-    process.exit(1);
+    process.exit(busy ? 0 : 1);
   }
 
   // Upgrade to real logger now that dependencies are available
