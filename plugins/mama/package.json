@@ -36,7 +36,7 @@
     "node": ">=22.13.0"
   },
   "dependencies": {
-    "@jungjaehoon/mama-core": "workspace:*"
+    "@jungjaehoon/mama-core": "^5.0.0"
   },
   "devDependencies": {
     "vitest": "^1.0.0"
