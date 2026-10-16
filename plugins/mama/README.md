@@ -1,7 +1,7 @@
 # MAMA for Claude Code
 
 Save development decisions and checkpoints, then retrieve them in later coding sessions.
-Version **2.2.0**, as declared in [package.json](package.json) and the
+Version **2.3.0**, as declared in [package.json](package.json) and the
 [plugin manifest](.claude-plugin/plugin.json). Requires Node.js 22.13+.
 
 The plugin supplies commands and hooks backed by the
@@ -17,9 +17,12 @@ Build with `pnpm install` and `pnpm build` from the repository root, then run in
 /plugin install mama@mama-dev
 ```
 
-Restart Claude Code. These commands select local plugin files, but the manifest
-([plugin.json](.claude-plugin/plugin.json) and [.mcp.json](.mcp.json)) launches the
-published MCP package with `npx -y @jungjaehoon/mama-server`.
+Restart Claude Code. These commands select local plugin files: the hooks run this checkout's core,
+while [.mcp.json](.mcp.json) launches the published MCP package pinned in this checkout,
+`npx -y @jungjaehoon/mama-server@<version>`. That version may not be published yet, and its core
+may differ from the checkout's. A plugin installed from the marketplace runs one core: the release
+publishes the server with the exact core version the hooks install, so both refuse a database a
+newer version migrated.
 For this branch's server code, use the local stdio configuration in
 [development-memory setup](../../docs/start/claude-code-plugin.md). That guide also describes the
 released marketplace path; published packages may lag this checkout.
