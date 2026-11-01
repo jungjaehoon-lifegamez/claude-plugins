@@ -14,9 +14,19 @@ The person enters secrets and the pairing code only in the setup page MAMA opens
 never in this chat: the conversation reaches the model provider and this agent's transcript. Never
 read `open.html` and never POST to the setup page. The page is the person's.
 
-1. Ask which backend MAMA runs (you, unless the person picks the other) and which model.
+1. Before the install, the bot. The setup page asks for a Telegram bot's token; the install
+   command opens that page partway through and it waits 15 minutes, so the bot must exist by then.
+   Unless the person already has a bot that no other MAMA uses, walk them through BotFather in
+   Telegram: open a chat with BotFather and send `/newbot`, choose the bot's name, then a username
+   that ends in `bot`. BotFather answers with the bot's token. Tell the person to leave it there
+   for the setup page and never to put it in this chat. A bot another MAMA already reads cannot be
+   paired: Telegram hands a bot's messages to one program at a time. The group comes after pairing
+   (step 4).
 
-2. Run the install command in the background, with its output in a file:
+2. Ask which backend MAMA runs (you, unless the person picks the other) and which model. If the
+   person leaves it to you, choose both yourself.
+
+3. Run the install command in the background, with its output in a file:
 
    ```bash
    curl -fsSL https://github.com/jungjaehoon-lifegamez/MAMA/releases/latest/download/install.sh | MAMA_INIT_MODEL=<model> sh -s -- --backend <claude|codex> --non-interactive
@@ -26,13 +36,17 @@ read `open.html` and never POST to the setup page. The page is the person's.
    their browser. If the browser did not open, give them the `file://` path of `open.html` that
    the output names, to paste into the address bar; the path holds no secret.
 
-3. Pass on the sign-in lines and the page's steps. A backend that is not signed in stops the
+4. Pass on the sign-in lines and the page's steps. A backend that is not signed in stops the
    command, which names the login with the backend's full path: run it in the background and give
    the person its URL and code. Codex's device page warns to cancel a code "another person gave
-   you"; say that this code comes from the login you started on their machine.
+   you"; say that this code comes from the login you started on their machine. After a sign-in, run
+   the same install command again. Use full paths: your shell does not read the PATH block the
+   installer writes, so run `~/.mama/bin/mama` and the backend by their paths.
 
-4. After a sign-in, run the same install command again. Use full paths: your shell does not read
-   the PATH block the installer writes, so run `~/.mama/bin/mama` and the backend by their paths.
+   Once the page says the pairing code is accepted, guide the group: the person makes a group for
+   common work in Telegram, even if they are the only owner, adds the bot to it, makes it an
+   administrator and sends `/bind` there. Telegram's member picker does not list bots: they search
+   for the bot's @username, or open the bot's profile and choose Add to Group.
 
 5. Setup is done when MAMA answers the person's message to their bot. Files on disk or a running
    service are not the end.
@@ -60,8 +74,15 @@ To set up a source from the conversation, now or whenever the person asks:
   MAMA_INIT_CONNECTORS='{"gmail": {...}}' ~/.mama/bin/mama init --section connectors --non-interactive
   ```
 
-  A source with a token opens the setup page for it, one field each; tell the person it is open,
-  as in step 2. The command saves nothing until every check passes, and it leaves MAMA stopped
+  A source whose token `auth.env` does not hold yet opens the setup page for it, one field each;
+  tell the person it is open, as in step 2. A token `auth.env` holds is kept, and the output says
+  so: the Slack and Discord sources read the token of MAMA's Slack and Discord messengers. Only
+  when the person wants another token entered, run again with its name in
+  `MAMA_INIT_REPLACE_SECRETS`, and first tell them that a messenger reading it switches to the new
+  bot too. A token only a messenger reads (Slack's app token, or a messenger's bot token while no
+  source being enabled reads it) cannot be entered from the conversation yet; tell the person so,
+  and do not look for another way in. The command saves nothing until every check passes, and it
+  leaves MAMA stopped
   however it ends. Start MAMA again with `~/.mama/bin/mama service start` as soon as each run
   ends, before you wait on the person for the next step; stop it again only for the next run.
 
