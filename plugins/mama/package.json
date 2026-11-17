@@ -1,6 +1,6 @@
 {
   "name": "mama-plugin",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "description": "MAMA Plugin for Claude Code - Memory-Augmented MCP Assistant. Track decisions, learn from mistakes, never repeat errors.",
   "author": "SpineLift Team",
   "license": "MIT",
@@ -36,7 +36,7 @@
     "node": ">=22.13.0"
   },
   "dependencies": {
-    "@jungjaehoon/mama-core": "8.10.0"
+    "@jungjaehoon/mama-core": "8.11.0"
   },
   "devDependencies": {
     "vitest": "^1.0.0"
